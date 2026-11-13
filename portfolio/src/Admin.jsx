@@ -126,7 +126,7 @@ function Editor({ password, onLogout }) {
     <DraftCtx.Provider value={{ d, up }}>
     <div className="admin">
       <header className="admin-bar">
-        <strong>Admin v2</strong>
+        <strong>Admin</strong>
         <span className="status">{status}</span>
         <div className="bar-actions">
           <Link className="btn ghost" to="/">View site</Link>
