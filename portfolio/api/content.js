@@ -3,11 +3,24 @@ import { Redis } from '@upstash/redis'
 
 const KEY = 'portfolio:content'
 
-const redis = () =>
-  new Redis({
-    url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
-  })
+// Finds a variable by name or with any prefix Vercel may have added (e.g. STORAGE_KV_REST_API_URL).
+const findEnv = (...names) => {
+  const key = Object.keys(process.env).find((k) => names.some((n) => k === n || k.endsWith('_' + n)))
+  return key ? process.env[key] : undefined
+}
+
+const redis = () => {
+  const url = findEnv('KV_REST_API_URL', 'UPSTASH_REDIS_REST_URL')
+  const token = findEnv('KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_TOKEN')
+  if (!url || !token) {
+    const seen = Object.keys(process.env).filter((k) => /KV|REDIS|UPSTASH|STORAGE/i.test(k))
+    throw new Error(
+      'No Redis connection variables found. Connect an Upstash Redis database to this project, then redeploy. ' +
+      'Variables seen: ' + (seen.join(', ') || 'none')
+    )
+  }
+  return new Redis({ url, token })
+}
 
 const valid = (d) =>
   d && typeof d === 'object' &&
@@ -41,6 +54,6 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed.' })
   } catch (e) {
-    return res.status(500).json({ error: 'Storage error: ' + e.message + ' (is the Redis database connected to this project?)' })
+    return res.status(500).json({ error: 'Storage error: ' + e.message })
   }
 }
