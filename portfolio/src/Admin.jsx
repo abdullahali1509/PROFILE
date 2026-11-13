@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSite, mergeContent } from './store.jsx'
 import { defaults, blankProject, slugify } from './data.js'
@@ -47,6 +47,22 @@ async function api(body) {
 // `npm run dev` has no /api, so saving falls back to this browser only.
 const noApiInDev = (r) => import.meta.env.DEV && (r.status === 404 || r.status === 405)
 
+const DraftCtx = createContext(null)
+
+function Field({ label, path, area, ph }) {
+  const { d, up } = useContext(DraftCtx)
+  const props = {
+    value: getp(d, path) ?? '',
+    placeholder: ph,
+    onChange: (e) => { const v = e.target.value; up((n) => setp(n, path, v)) },
+  }
+  return (
+    <label className="field"><span>{label}</span>
+      {area ? <textarea {...props} /> : <input {...props} />}
+    </label>
+  )
+}
+
 function Login({ onOk }) {
   const [pw, setPw] = useState('')
   const [err, setErr] = useState('')
@@ -83,15 +99,6 @@ function Editor({ password, onLogout }) {
   const [busy, setBusy] = useState(false)
 
   const up = (fn) => setD((prev) => { const n = structuredClone(prev); fn(n); return n })
-  const bind = (path) => ({
-    value: getp(d, path) ?? '',
-    onChange: (e) => { const v = e.target.value; up((n) => setp(n, path, v)) },
-  })
-  const Field = ({ label, path, area, ph }) => (
-    <label className="field"><span>{label}</span>
-      {area ? <textarea {...bind(path)} placeholder={ph} /> : <input {...bind(path)} placeholder={ph} />}
-    </label>
-  )
 
   const move = (i, dir) => up((n) => { const j = i + dir; [n.projects[i], n.projects[j]] = [n.projects[j], n.projects[i]] })
 
@@ -116,6 +123,7 @@ function Editor({ password, onLogout }) {
   }
 
   return (
+    <DraftCtx.Provider value={{ d, up }}>
     <div className="admin">
       <header className="admin-bar">
         <strong>Admin</strong>
@@ -194,6 +202,7 @@ function Editor({ password, onLogout }) {
         Reset form to defaults
       </button>
     </div>
+    </DraftCtx.Provider>
   )
 }
 
